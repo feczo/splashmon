@@ -1,5 +1,5 @@
-application: stashboard-hrd
-version: 2
+application: splashmon
+version: greatest
 runtime: python
 api_version: 1
 
@@ -10,7 +10,23 @@ builtins:
 - appstats: on
 - remote_api: on
 
+inbound_services:
+- mail
+- xmpp_message
+- xmpp_presence
+- xmpp_error
+
 handlers:
+- url: /_ah/mail/.*
+  script: gaetracker/mail.py
+  login: admin
+
+- url: /tracker
+  script: gaetracker
+
+- url: /gae-tracker/static/
+  static_dir: gaetracker/static
+
 - url: /console/.*
   script: $PYTHON_LIB/google/appengine/ext/admin
   login: admin
@@ -43,6 +59,10 @@ handlers:
   script: main.py
   secure: always
   login: admin
+
+- url: /check
+  script: stashboard.py
+  secure: optional
 
 - url: .*
   script: main.py

@@ -22,6 +22,7 @@ import os
 import datetime
 import logging
 import urlparse
+import hashlib
 from datetime import timedelta
 from datetime import date
 from google.appengine.ext import db
@@ -41,12 +42,12 @@ class InternalEvent(db.Model):
 
 
 class Image(db.Model):
-    """A service to track
+    """A graphical representation of a service
 
     Properties:
-    slug -- stirng: URL friendly version of the name
+    slug -- string: URL friendly version of the name
     name -- string: The name of this service
-    path -- stirng: The path to the image
+    path -- string: The path to the image
 
     """
     slug = db.StringProperty(required=True)
@@ -67,6 +68,7 @@ class Image(db.Model):
 
     def absolute_url(self):
         return "/images/" + self.path
+
 
 class List(db.Model):
     """A list to group service
@@ -109,7 +111,6 @@ class List(db.Model):
         return m
 
 
-
 class Service(db.Model):
     """A service to track
 
@@ -129,6 +130,7 @@ class Service(db.Model):
     list = db.ReferenceProperty(List)
 
     def current_event(self):
+
         event = self.events.order('-start').get()
         return event
 
@@ -209,6 +211,7 @@ class Service(db.Model):
 
         return m
 
+
 class Status(db.Model):
     """A possible system status
 
@@ -230,7 +233,7 @@ class Status(db.Model):
     @classmethod
     def load_defaults(cls):
         """
-        Install the default statuses. xI am not sure where these should live just yet
+        Install the default statuses.
         """
         if not cls.get_by_slug("down"):
             d = cls(name="Down", slug="down",
@@ -332,8 +335,41 @@ class Event(db.Model):
 
         return m
 
+
 class Profile(db.Model):
     owner = db.UserProperty(required=True)
     token = db.StringProperty(required=True)
     secret = db.StringProperty(required=True)
 
+
+class Subscription(db.Model):
+    """A subscription to a service.
+
+    Properties:
+        type    -- string: The type of notifcation to send
+        address -- string: contract address to send notification to
+        service -- reference: the service to notify about
+    """
+
+    type = db.StringProperty(required=True)
+    address = db.StringProperty(required=True)
+    status = db.StringProperty(required=False)
+    service = db.ReferenceProperty(Service, collection_name="subscriptions")
+
+    @classmethod
+    def get_by_email(cls, address):
+        return cls.get_by_key_name(hashlib.sha1(address).hexdigest())
+
+class Mobile(db.Model):
+    """A backup mobile subscription to a service. 
+	this message is only sent if the xmpp account was found offline
+	for standard SMS subscription, which is always sent an  
+	SMS type entry is required in Subscription kind
+	and nothing of this kind
+
+    Properties:
+	subscription - an xmpp subscription which this is the backup SMS service for
+        number -- mobile number
+    """
+    subscription = db.ReferenceProperty(Subscription)
+    number = db.StringProperty(required=True)

@@ -34,7 +34,7 @@ from google.appengine.api import memcache
 from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-from handlers import site, api, admin
+from handlers import site, api, admin, xmpp
 
 API = [
     (r'/api/(.+)/levels', api.LevelListHandler), #DEPRECATED
@@ -98,9 +98,19 @@ ADMIN = [
     (r'/admin', admin.RootHandler),
     ]
 
+XMPP = [
+    ('/_ah/xmpp/message/chat/', xmpp.XmppHandler),
+    ('/notify/xmpp', xmpp.XmppNotificationHandler),
+    ('/_ah/xmpp/presence/(.*)/', xmpp.XMPPPresenceHandler),
+    ('/_ah/xmpp/subscription/(.*)/', xmpp.XMPPSubscriptionHandler),
+    ('/notify/testsms', xmpp.TestSMS),
+    ('/notify/testxmpp', xmpp.TestXMPP)
+    ]
+
 ROUTES = []
 ROUTES.extend(SITE)
 ROUTES.extend(ADMIN)
+ROUTES.extend(XMPP)
 ROUTES.extend([ ("/admin" + a[0], a[1]) for a in API ])
 ROUTES.extend([ (a[0], a[1].readonly()) for a in API ])
 ROUTES.append((r'/.*$', site.NotFoundHandler))

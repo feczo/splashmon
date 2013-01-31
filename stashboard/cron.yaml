@@ -2,3 +2,7 @@ cron:
 - description: daily task to clean the frontpage
   url: /admin/tasks/invalidate-cache
   schedule: every day 00:01
+
+- description: periodic server checks
+  url: /check
+  schedule: every 4 minutes

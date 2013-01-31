@@ -44,3 +44,14 @@ indexes:
   properties:
   - name: list
   - name: name
+
+- kind: TrackerIssue
+  properties:
+  - name: labels
+  - name: date_created
+    direction: desc
+
+- kind: TrackerIssueComment
+  properties:
+  - name: issue_id
+  - name: date_created

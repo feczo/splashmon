@@ -49,7 +49,7 @@ from handlers import restful
 from time import mktime
 from utils import authorized
 from utils import slugify
-from models import List, Status, Event, Service, Image
+from models import List, Status, Event, Service, Image, Subscription, Mobile
 from wsgiref.handlers import format_date_time
 
 
@@ -377,10 +377,13 @@ class EventsListHandler(restful.Controller):
             self.error(404, "Service %s not found" % service_slug)
             return
 
+        last_event = service.current_event()
+        if last_event:
+            old_status = last_event.status
+
         if not status_slug:
-            event = service.current_event()
-            if event:
-                status = event.status
+            if last_event:
+                status = old_status
             else:
                 status = Status.get_default()
         else:
@@ -398,6 +401,21 @@ class EventsListHandler(restful.Controller):
         if self.request.get('tweet'):
             logging.info('Attempting to post a tweet for the latest event via async GAE task queue.')
             taskqueue.add(url='/admin/tweet', params={'service_name': service.name, 'status_name': status.name, 'message': message})
+        # Queue up tasks for notifing subscribers via XMPP
+        if service.subscriptions:
+	    for subscription in service.subscriptions.filter("type =","xmpp"):
+	        mobile = Mobile.all().filter('subscription = ', subscription).get()
+		if mobile:
+			mobile_number = mobile.number
+		else:
+			mobile_number = False
+                params={'address': subscription.address, 'service':
+                        service.key(), 'oldstatus': old_status.key(), 'number': mobile_number}
+                logging.info("Adding deferred task: %s %s" % (
+                    subscription.type, params))
+                taskqueue.add(url='/notify/' + subscription.type, params=params)
+        else:
+            logging.info("No subscriptions for %s" % service.name)
 
         invalidate_cache()
         self.json(e.rest(self.base_url(version)))
